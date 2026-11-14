@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CashNova | Business Finance</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<style>
+:root{--green:#087f5b;--green2:#e7f5ef;--ink:#17231f;--muted:#718078;--line:#e7ece9;--bg:#f6f8f7;--white:#fff;--red:#c0392b;--amber:#a66b00}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:Inter,Arial,sans-serif;color:var(--ink)}
+button,input,select{font:inherit}button{cursor:pointer;border:0;border-radius:9px;padding:10px 14px;background:var(--green);color:white;font-weight:600}
+button.secondary{background:#edf3f0;color:#245443}button.danger{background:#fff0ee;color:var(--red)}
+input,select{border:1px solid var(--line);border-radius:8px;padding:10px;width:100%;background:#fff}
+.login-wrap{min-height:100vh;display:grid;place-items:center;padding:20px}.login{background:white;width:min(420px,100%);padding:32px;border:1px solid var(--line);border-radius:18px;box-shadow:0 15px 45px #173c2b10}
+.logo{font-size:25px;font-weight:800;color:var(--green);letter-spacing:-1px}.muted{color:var(--muted)}.field{margin:15px 0}.field label{display:block;font-size:13px;margin-bottom:7px;color:#53635b}
+.app{display:none;min-height:100vh}.sidebar{width:235px;background:#fff;border-right:1px solid var(--line);padding:24px 15px;position:fixed;inset:0 auto 0 0}
+.brand{padding:0 12px 28px}.nav button{display:block;width:100%;text-align:left;background:transparent;color:#59675f;padding:12px;margin:3px 0;font-weight:600}.nav button.active,.nav button:hover{background:var(--green2);color:var(--green)}
+.side-bottom{position:absolute;bottom:20px;left:20px;right:20px}.main{margin-left:235px;padding:28px;max-width:1500px}.top{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:25px}.top h1{font-size:25px;margin:0}.page{display:none}.page.active{display:block}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:15px}.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px}.metric{font-size:26px;font-weight:800;margin:9px 0 3px}.metric-label{font-size:13px;color:var(--muted)}.positive{color:var(--green)}.negative{color:var(--red)}
+.two{display:grid;grid-template-columns:1.5fr 1fr;gap:16px}.section-title{font-size:16px;font-weight:750;margin:0 0 15px}.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}.toolbar input{max-width:280px}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:12px 9px;border-bottom:1px solid var(--line);white-space:nowrap}th{color:var(--muted);font-weight:650}
+.pill{display:inline-block;padding:5px 9px;border-radius:30px;font-size:11px;font-weight:700;background:#edf3f0;color:#496258}.pill.good{background:#e5f5ec;color:#087f5b}.pill.warn{background:#fff4dd;color:#9a6500}.pill.bad{background:#ffebe8;color:#b83225}
+.alert{padding:12px 14px;border-radius:10px;background:#fff7e6;color:#805700;margin:9px 0;font-size:13px}.success{background:#e8f6ef;color:#176b4e}.form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.small{font-size:12px}.empty{color:var(--muted);padding:18px;text-align:center}.actions{display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:900px){.sidebar{width:190px}.main{margin-left:190px;padding:18px}.grid{grid-template-columns:repeat(2,1fr)}.two{grid-template-columns:1fr}}
+@media(max-width:620px){.sidebar{position:static;width:auto;height:auto;padding:12px}.brand{padding:5px 8px 10px}.nav{display:flex;overflow:auto}.nav button{white-space:nowrap;width:auto;margin:2px}.side-bottom{display:none}.main{margin:0;padding:14px}.grid{grid-template-columns:1fr 1fr}.top{align-items:flex-start}.top h1{font-size:21px}.form-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div id="loginScreen" class="login-wrap">
+  <div class="login">
+    <div class="logo">CashNova</div>
+    <p class="muted">A clearer view of your business cash.</p>
+    <h2 id="authTitle">Welcome back</h2>
+    <form id="authForm">
+      <div class="field" id="businessField" style="display:none"><label>Business name</label><input id="businessName" placeholder="e.g. Sri Lakshmi Stores"></div>
+      <div class="field"><label>Email</label><input id="email" type="email" required placeholder="you@example.com"></div>
+      <div class="field"><label>Password</label><input id="password" type="password" required minlength="4" placeholder="Enter password"></div>
+      <button style="width:100%" id="authSubmit">Login</button>
+    </form>
+    <p class="small muted" id="authToggle">New to CashNova? <a href="#" id="toggleAuth">Create an account</a></p>
+    <p class="small muted">Demo prototype: credentials are stored only in this browser.</p>
+  </div>
+</div>
+<div id="app" class="app">
+ <aside class="sidebar">
+  <div class="brand"><div class="logo">CashNova</div><div class="small muted">Business finance workspace</div></div>
+  <nav class="nav">
+   <button class="active" data-page="overview">▦ &nbsp; Overview</button>
+   <button data-page="transactions">⇄ &nbsp; Transactions</button>
+   <button data-page="reality">◉ &nbsp; Cash Reality</button>
+   <button data-page="risks">♧ &nbsp; Payment Risks</button>
+   <button data-page="forecast">⌁ &nbsp; Cash Flow Forecast</button>
+   <button data-page="simulator">◇ &nbsp; What-if Simulator</button>
+   <button data-page="actions">✦ &nbsp; AI Action Plan</button>
+  </nav>
+  <div class="side-bottom small muted"><span id="businessLabel">My Business</span><br><br><button class="secondary" id="logoutBtn">Log out</button></div>
+ </aside>
+ <main class="main">
+  <div class="top"><div><h1 id="pageTitle">Overview</h1><div class="muted small" id="todayLabel"></div></div><div class="actions"><button class="secondary" onclick="showPage('transactions')">＋ Add transactions</button></div></div>
+
+  <section class="page active" id="overview">
+   <div class="grid">
+    <div class="card"><div class="metric-label">Available bank cash</div><div class="metric" id="bankMetric">₹0</div><div class="small muted">Based on imported transactions</div></div>
+    <div class="card"><div class="metric-label">Expected receivables</div><div class="metric" id="receivableMetric">₹0</div><div class="small muted">Unpaid invoice balance</div></div>
+    <div class="card"><div class="metric-label">Upcoming expenses</div><div class="metric" id="expenseMetric">₹0</div><div class="small muted">Recorded expenses in data</div></div>
+    <div class="card"><div class="metric-label">Projected month-end cash</div><div class="metric" id="monthMetric">₹0</div><div class="small muted">Simple estimate, not a guarantee</div></div>
+   </div>
+   <div class="two">
+    <div class="card"><h3 class="section-title">Cash movement</h3><canvas id="cashChart" height="115"></canvas></div>
+    <div class="card"><h3 class="section-title">Important alerts</h3><div id="overviewAlerts"></div><button class="secondary" onclick="showPage('actions')">View action plan</button></div>
+   </div>
+   <div class="card"><h3 class="section-title">Recent transactions</h3><div id="recentTable"></div></div>
+   <div class="card"><h3 class="section-title">Start with your own data</h3><p class="muted small">Upload a CSV exported from your accounting software or spreadsheet. CashNova will use the imported rows to refresh the dashboard.</p><button onclick="showPage('transactions')">Upload CSV</button></div>
+  </section>
+
+  <section class="page" id="transactions">
+   <div class="card"><h3 class="section-title">Import transaction CSV</h3>
+    <p class="muted small">Required columns: Date, Description, Amount, Type. Optional: Customer, Category. Income amounts should be positive; expenses can be positive or negative.</p>
+    <div class="toolbar"><input type="file" id="csvFile" accept=".csv,text/csv"><button id="loadSample" class="secondary">Load sample data</button><button id="clearData" class="danger">Clear transactions</button></div><div id="uploadMessage" class="small muted"></div>
+   </div>
+   <div class="card"><h3 class="section-title">Add transaction manually</h3>
+    <form id="manualTransactionForm" class="form-grid">
+     <div class="field"><label>Date</label><input id="manualDate" type="date" required></div>
+     <div class="field"><label>Description</label><input id="manualDescription" required placeholder="e.g. Shop rent"></div>
+     <div class="field"><label>Amount (₹)</label><input id="manualAmount" type="number" min="1" required></div>
+     <div class="field"><label>Transaction type</label><select id="manualType"><option value="income">Income</option><option value="expense">Expense</option></select></div>
+     <div class="field"><label>Transaction category</label><select id="manualCategory"><option>Sales</option><option>Rent</option><option>Inventory</option><option>Salaries</option><option>Utilities</option><option>Transport</option><option>Marketing</option><option>Loan / EMI</option><option>Taxes</option><option>Other</option></select></div>
+     <div class="field" style="align-self:end"><button type="submit">＋ Add transaction</button></div>
+    </form>
+   </div>
+   <div class="card"><div class="toolbar"><h3 class="section-title" style="margin:0">All transactions</h3><input id="transactionSearch" placeholder="Search description or category..."></div><div id="transactionsTable"></div></div>
+  </section>
+
+  <section class="page" id="reality">
+   <div class="grid">
+    <div class="card"><div class="metric-label">Bank cash estimate</div><div class="metric" id="realityBank">₹0</div></div>
+    <div class="card"><div class="metric-label">Outstanding receivables</div><div class="metric" id="realityReceivables">₹0</div></div>
+    <div class="card"><div class="metric-label">Recorded unpaid obligations</div><div class="metric" id="obligationsMetric">₹0</div></div>
+    <div class="card"><div class="metric-label">Usable cash estimate</div><div class="metric positive" id="usableMetric">₹0</div></div>
+   </div>
+   <div class="card"><h3 class="section-title">Cash Reality</h3><p class="muted small">Usable cash = estimated bank cash − unpaid obligations you enter below. Receivables are shown separately and are not counted as cash until received.</p>
+    <div class="form-grid"><div class="field"><label>Unpaid obligations / reserved funds (₹)</label><input id="obligationsInput" type="number" min="0" value="0"></div></div><button id="saveObligations">Update usable cash</button><div id="realityNote" class="alert success" style="margin-top:15px"></div>
+   </div>
+  </section>
+
+  <section class="page" id="risks">
+   <div class="card"><h3 class="section-title">Customer receivables</h3>
+    <form id="invoiceForm" class="form-grid">
+     <div class="field"><label>Customer name</label><input id="customer" required></div><div class="field"><label>Invoice number</label><input id="invoiceNo" required></div>
+     <div class="field"><label>Invoice amount (₹)</label><input id="invoiceAmount" type="number" min="1" required></div><div class="field"><label>Amount received (₹)</label><input id="amountReceived" type="number" min="0" value="0" required></div>
+     <div class="field"><label>Invoice date</label><input id="invoiceDate" type="date" required></div><div class="field"><label>Due date</label><input id="dueDate" type="date" required></div>
+     <div class="field"><button type="submit">Add invoice</button></div>
+    </form>
+   </div>
+   <div class="card"><h3 class="section-title">Payment risk overview</h3><div id="riskTable"></div></div>
+  </section>
+
+  <section class="page" id="forecast">
+   <div class="grid">
+    <div class="card"><div class="metric-label">Estimated 30-day closing cash</div><div class="metric" id="forecastClose">₹0</div></div>
+    <div class="card"><div class="metric-label">Estimated lowest cash</div><div class="metric" id="forecastLow">₹0</div></div>
+    <div class="card"><div class="metric-label">Average daily net flow</div><div class="metric" id="dailyNet">₹0</div></div>
+    <div class="card"><div class="metric-label">Forecast confidence</div><div class="metric">Limited</div><div class="small muted">Based on available history</div></div>
+   </div>
+   <div class="card"><h3 class="section-title">30-day balance estimate</h3><canvas id="forecastChart" height="100"></canvas><p class="small muted">This simple estimate uses average daily net transaction flow. It is not a guaranteed prediction. More transaction history improves usefulness.</p><div id="forecastAlert"></div></div>
+  </section>
+
+  <section class="page" id="simulator">
+   <div class="card"><h3 class="section-title">Simulate a business decision</h3><p class="muted small">Try a purchase or expense change without changing your real transaction history.</p>
+    <div class="form-grid"><div class="field"><label>Decision type</label><select id="simType"><option value="purchase">One-time purchase</option><option value="expense">Monthly expense increase</option><option value="receipt">Customer payment delayed</option></select></div><div class="field"><label>Amount (₹)</label><input id="simAmount" type="number" min="0" value="50000"></div></div>
+    <button id="simulateBtn">Run simulation</button><div id="simulationResult" style="margin-top:15px"></div>
+   </div>
+  </section>
+
+  <section class="page" id="actions">
+   <div class="card"><h3 class="section-title">Your action plan</h3><p class="muted small">These suggestions are generated from simple rules and the data currently available.</p><div id="actionList"></div></div>
+  </section>
+ </main>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+const money = n => "₹" + Math.round(Number(n)||0).toLocaleString("en-IN");
+let transactions = JSON.parse(localStorage.getItem("cn_transactions")||"[]");
+let invoices = JSON.parse(localStorage.getItem("cn_invoices")||"[]");
+let obligations = Number(localStorage.getItem("cn_obligations")||0);
+let isSignup = false, chart = null, forecastChart = null;
+
+function save(){localStorage.setItem("cn_transactions",JSON.stringify(transactions));localStorage.setItem("cn_invoices",JSON.stringify(invoices));localStorage.setItem("cn_obligations",String(obligations));}
+function signedIn(){ $("loginScreen").style.display="none";$("app").style.display="block";$("businessLabel").textContent=localStorage.getItem("cn_business")||"My Business";$("todayLabel").textContent=new Date().toLocaleDateString("en-IN",{weekday:"long",day:"numeric",month:"long",year:"numeric"});renderAll();}
+$("toggleAuth").onclick=e=>{e.preventDefault();isSignup=!isSignup;$("authTitle").textContent=isSignup?"Create your account":"Welcome back";$("authSubmit").textContent=isSignup?"Sign up":"Login";$("businessField").style.display=isSignup?"block":"none";$("authToggle").innerHTML=isSignup?'Already registered? <a href="#" id="toggleAuth">Login</a>':'New to CashNova? <a href="#" id="toggleAuth">Create an account</a>'; $("toggleAuth").onclick=arguments.callee;};
+$("authForm").onsubmit=e=>{e.preventDefault();if(isSignup){localStorage.setItem("cn_user",$("email").value);localStorage.setItem("cn_pass",$("password").value);localStorage.setItem("cn_business",$("businessName").value||"My Business");}else if(localStorage.getItem("cn_user") && (localStorage.getItem("cn_user")!==$("email").value||localStorage.getItem("cn_pass")!==$("password").value)){alert("Email or password does not match. For first use, choose Create an account.");return;}signedIn();};
+$("logoutBtn").onclick=()=>{ $("app").style.display="none";$("loginScreen").style.display="grid";};
+document.querySelectorAll(".nav button").forEach(b=>b.onclick=()=>showPage(b.dataset.page));
+function showPage(id){document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));$(id).classList.add("active");document.querySelectorAll(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.page===id));$("pageTitle").textContent=({overview:"Overview",transactions:"Transactions",reality:"Cash Reality",risks:"Payment Risks",forecast:"Cash Flow Forecast",simulator:"What-if Simulator",actions:"AI Action Plan"})[id];renderAll();}
+function total(type){return transactions.filter(t=>t.type===type).reduce((s,t)=>s+Math.abs(t.amount),0)}
+function bankCash(){return transactions.reduce((s,t)=>s+(t.type==="income"?Math.abs(t.amount):-Math.abs(t.amount)),0)}
+function receivables(){return invoices.reduce((s,i)=>s+Math.max(0,i.amount-i.received),0)}
+function cat(desc){let d=desc.toLowerCase();if(/rent/.test(d))return"Rent";if(/salary|wage/.test(d))return"Salaries";if(/electric|water|internet|phone/.test(d))return"Utilities";if(/stock|inventory|wholesale|purchase/.test(d))return"Inventory";if(/sale|customer|payment|upi/.test(d))return"Sales";if(/fuel|travel|delivery/.test(d))return"Transport";return"Other"}
+function normalize(row){let keys=Object.keys(row);const get=(...names)=>{let k=keys.find(x=>names.includes(x.toLowerCase().trim()));return k?row[k]:""};let amt=Number(String(get("amount","value","total")).replace(/[₹,\s]/g,""));let type=String(get("type","transaction type")).toLowerCase();if(!type)type=amt<0?"expense":"income";type=type.includes("exp")||amt<0?"expense":"income";let desc=String(get("description","details","narration","particulars","name")||"Transaction");return {date:String(get("date","transaction date")||new Date().toISOString().slice(0,10)),description:desc,amount:Math.abs(amt)||0,type,customer:String(get("customer","party","client")||""),category:String(get("category")||cat(desc))};}
+$("csvFile").onchange=e=>{let file=e.target.files[0];if(!file)return;Papa.parse(file,{header:true,skipEmptyLines:true,complete:r=>{let rows=r.data.map(normalize).filter(t=>t.amount>0);transactions=transactions.concat(rows);save();$("uploadMessage").textContent=`Imported ${rows.length} transaction(s).`;renderAll();}});};
+$("loadSample").onclick=()=>{transactions=[
+{date:"2026-11-01",description:"Product sales",amount:25000,type:"income",customer:"Customer A",category:"Sales"},
+{date:"2026-11-02",description:"Shop rent",amount:12000,type:"expense",customer:"",category:"Rent"},
+{date:"2026-11-03",description:"Customer payment",amount:15000,type:"income",customer:"Customer B",category:"Sales"},
+{date:"2026-11-04",description:"Inventory purchase",amount:18000,type:"expense",customer:"",category:"Inventory"},
+{date:"2026-11-05",description:"Electricity bill",amount:3000,type:"expense",customer:"",category:"Utilities"},
+{date:"2026-11-06",description:"Product sales",amount:22000,type:"income",customer:"Customer C",category:"Sales"},
+{date:"2026-11-08",description:"Delivery fuel",amount:2500,type:"expense",customer:"",category:"Transport"},
+{date:"2026-11-10",description:"Product sales",amount:19000,type:"income",customer:"Customer A",category:"Sales"}
+];save();$("uploadMessage").textContent="Sample transactions loaded.";renderAll();};
+$("clearData").onclick=()=>{if(confirm("Delete all transaction rows?")){transactions=[];save();renderAll();}};
+$("transactionSearch").oninput=renderTransactions;
+const transactionCategories=["Sales","Rent","Inventory","Salaries","Utilities","Transport","Marketing","Loan / EMI","Taxes","Other"];
+function table(rows){if(!rows.length)return'<div class="empty">No records yet. Upload a CSV, add a transaction, or load sample data.</div>';return'<div class="table-wrap"><table><thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Type</th><th>Amount</th></tr></thead><tbody>'+rows.map(t=>{let idx=transactions.indexOf(t);let opts=transactionCategories.map(c=>`<option value="${c}" ${t.category===c?"selected":""}>${c}</option>`).join("");return `<tr><td>${esc(t.date)}</td><td>${esc(t.description)}</td><td><select class="category-select" data-index="${idx}" aria-label="Choose transaction category">${opts}</select></td><td><span class="pill ${t.type==="income"?"good":"warn"}">${t.type}</span></td><td class="${t.type==="income"?"positive":"negative"}">${t.type==="income"?"+":"−"}${money(t.amount)}</td></tr>`}).join("")+'</tbody></table></div>'}
+function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function renderTransactions(){$("transactionsTable").innerHTML=table(transactions.filter(t=>(t.description+" "+t.category).toLowerCase().includes(($("transactionSearch").value||"").toLowerCase())));}
+$("transactionsTable").addEventListener("change",e=>{if(e.target.classList.contains("category-select")){let i=Number(e.target.dataset.index);if(transactions[i]){transactions[i].category=e.target.value;save();renderTransactions();renderOverview();renderActions();}}});
+$("manualDate").value=new Date().toISOString().slice(0,10);
+$("manualTransactionForm").onsubmit=e=>{e.preventDefault();let desc=$("manualDescription").value.trim();transactions.push({date:$("manualDate").value,description:desc,amount:Number($("manualAmount").value),type:$("manualType").value,customer:"",category:$("manualCategory").value});save();e.target.reset();$("manualDate").value=new Date().toISOString().slice(0,10);renderAll();};
+function renderOverview(){let bank=bankCash(),rec=receivables(),exp=total("expense"),daily=(total("income")-exp)/Math.max(1,transactions.length?new Set(transactions.map(t=>t.date)).size:1);$("bankMetric").textContent=money(bank);$("receivableMetric").textContent=money(rec);$("expenseMetric").textContent=money(exp);$("monthMetric").textContent=money(bank+daily*30);$("recentTable").innerHTML=table(transactions.slice(-5).reverse());let alerts=[];if(!transactions.length)alerts.push("Upload transaction history to generate useful insights.");if(bank<0)alerts.push("Recorded expenses exceed recorded income. Review cash position.");if(rec>0)alerts.push(`${money(rec)} is still outstanding from customers.`);if(!alerts.length)alerts.push("No immediate rule-based alerts from the available data.");$("overviewAlerts").innerHTML=alerts.map(a=>`<div class="alert">${esc(a)}</div>`).join("");drawCashChart();}
+function drawCashChart(){let dates=[...new Set(transactions.map(t=>t.date))].sort().slice(-10);let vals=dates.map(d=>transactions.filter(t=>t.date===d).reduce((s,t)=>s+(t.type==="income"?t.amount:-t.amount),0));if(chart)chart.destroy();chart=new Chart($("cashChart"),{type:"bar",data:{labels:dates,datasets:[{label:"Net movement",data:vals,backgroundColor:vals.map(v=>v>=0?"#25a879":"#e58b7f"),borderRadius:5}]},options:{plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>"₹"+v.toLocaleString("en-IN")}}}}});}
+function renderReality(){let b=bankCash(),r=receivables(),u=b-obligations;$("realityBank").textContent=money(b);$("realityReceivables").textContent=money(r);$("obligationsMetric").textContent=money(obligations);$("usableMetric").textContent=money(u);$("obligationsInput").value=obligations;$("realityNote").textContent=u<0?"Warning: recorded obligations are greater than estimated bank cash.":`Estimated usable cash after obligations: ${money(u)}. Receivables are not included until received.`;}
+$("saveObligations").onclick=()=>{obligations=Math.max(0,Number($("obligationsInput").value)||0);save();renderReality();};
+$("invoiceForm").onsubmit=e=>{e.preventDefault();let amount=Number($("invoiceAmount").value),received=Number($("amountReceived").value);if(received>amount){alert("Received amount cannot exceed invoice amount.");return;}invoices.push({customer:$("customer").value,number:$("invoiceNo").value,amount,received,date:$("invoiceDate").value,due:$("dueDate").value});save();e.target.reset();renderAll();};
+function renderRisks(){if(!invoices.length){$("riskTable").innerHTML='<div class="empty">No invoices added yet.</div>';return;}let today=new Date().toISOString().slice(0,10);$("riskTable").innerHTML='<div class="table-wrap"><table><thead><tr><th>Customer</th><th>Invoice</th><th>Outstanding</th><th>Due date</th><th>Status</th></tr></thead><tbody>'+invoices.map(i=>{let rem=i.amount-i.received,late=rem>0&&i.due<today;return `<tr><td>${esc(i.customer)}</td><td>${esc(i.number)}</td><td>${money(rem)}</td><td>${esc(i.due)}</td><td><span class="pill ${rem<=0?"good":late?"bad":"warn"}">${rem<=0?"Paid":late?"Overdue":"Pending"}</span></td></tr>`}).join("")+'</tbody></table></div>';}
+function renderForecast(){let days=Math.max(1,new Set(transactions.map(t=>t.date)).size),net=(total("income")-total("expense"))/days,close=bankCash()+net*30,low=Math.min(bankCash(),close);$("forecastClose").textContent=money(close);$("forecastLow").textContent=money(low);$("dailyNet").textContent=money(net);$("forecastAlert").innerHTML=close<0?'<div class="alert">The simple estimate becomes negative within 30 days. Review upcoming spending and collections.</div>':'<div class="alert success">No negative month-end balance in this simple estimate. Keep monitoring actual cash.</div>';if(forecastChart)forecastChart.destroy();let labels=Array.from({length:31},(_,i)=>"Day "+i),data=labels.map((_,i)=>bankCash()+net*i);forecastChart=new Chart($("forecastChart"),{type:"line",data:{labels,datasets:[{label:"Estimated cash",data,borderColor:"#087f5b",backgroundColor:"#e7f5ef",fill:true,tension:.25}]},options:{plugins:{legend:{display:false}}}});}
+$("simulateBtn").onclick=()=>{let type=$("simType").value,a=Math.max(0,Number($("simAmount").value)||0),before=bankCash(),after=before;if(type==="receipt")after-=a;else after-=a;let label=type==="purchase"?"purchase":type==="expense"?"monthly expense increase":"delayed customer payment";$("simulationResult").innerHTML=`<div class="alert ${after<0?"":"success"}"><b>Simulation: ${label}</b><br>Current estimated cash: ${money(before)}<br>After this scenario: <b>${money(after)}</b><br>${after<0?"This scenario could push the estimated cash balance below zero.":"This scenario leaves a non-negative estimated cash balance."}<br><span class="small">Simulation only — actual records were not changed.</span></div>`;};
+function renderActions(){let b=bankCash(),r=receivables(),exp=total("expense"),inc=total("income"),items=[];if(!transactions.length)items.push("Import transaction history before relying on forecasts or recommendations.");if(r>0)items.push(`Follow up on ${money(r)} in outstanding customer invoices.`);if(b<0)items.push("Review spending and collections because recorded net cash is negative.");if(inc>0&&exp/inc>.75)items.push("Expenses are more than 75% of recorded income. Review recurring costs and supplier purchases.");if(transactions.length&&new Set(transactions.map(t=>t.date)).size<7)items.push("Import more days of transactions to make the cash-flow estimate more representative.");if(!items.length)items.push("Keep transaction records updated and review your cash position weekly.");$("actionList").innerHTML=items.map((x,i)=>`<div class="alert ${i===0?"success":""}">${i+1}. ${esc(x)}</div>`).join("");}
+function renderAll(){renderOverview();renderTransactions();renderReality();renderRisks();renderForecast();renderActions();}
+if(localStorage.getItem("cn_user")){$("authTitle").textContent="Welcome back";}else{$("authTitle").textContent="Create your account";isSignup=true;$("businessField").style.display="block";$("authSubmit").textContent="Sign up";$("authToggle").innerHTML='Already registered? <a href="#" id="toggleAuth">Login</a>';$("toggleAuth").onclick=e=>{e.preventDefault();isSignup=false;$("authTitle").textContent="Welcome back";$("businessField").style.display="none";$("authSubmit").textContent="Login";$("authToggle").innerHTML='New to CashNova? <a href="#" id="toggleAuth">Create an account</a>';$("toggleAuth").onclick=()=>location.reload();};}
+</script>
+</body></html>
